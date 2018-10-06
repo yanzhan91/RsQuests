@@ -53,7 +53,7 @@ def quest_intent_handler(handler_input):
         if 'requiredSkills' in quest:
             speech_text = speech_text + ' ' + deserializer.deserialize(quest['requiredSkills'])
         
-        speech_text = speech_text + '.'
+        speech_text = speech_text + '. '
     else:
         speech_text = "%s does not require any item or skill. " % quest_name
 
@@ -73,6 +73,12 @@ def next_intent_handler(handler_input):
     step = handler_input.attributes_manager.session_attributes['step']
     steps = handler_input.attributes_manager.session_attributes['steps']
     quest_name = handler_input.attributes_manager.session_attributes['quest_name']
+
+    if (len(steps) >= step + 1):
+        speech_text = "You have completed %s. Thank you for using Runescape Quests" % quest_name
+        handler_input.response_builder.speak(speech_text).set_card(
+        SimpleCard("%s: Step %s" % (quest_name, step), speech_text)).set_should_end_session(True)
+
     speech_text = steps[step + 1]
     handler_input.attributes_manager.session_attributes['step'] += 1
 
@@ -114,12 +120,12 @@ def cancel_and_stop_intent_handler(handler_input):
         SimpleCard("Hello World", speech_text)).set_should_end_session(True)
     return handler_input.response_builder.response
 
-# @sb.exception_handler(can_handle_func=lambda i, e: True)
-# def all_exception_handler(handler_input, exception):
-#     # type: (HandlerInput, Exception) -> Response
-#     # Log the exception in CloudWatch Logs
-#     print(exception)
+@sb.exception_handler(can_handle_func=lambda i, e: True)
+def all_exception_handler(handler_input, exception):
+    # type: (HandlerInput, Exception) -> Response
+    # Log the exception in CloudWatch Logs
+    print(exception)
 
-#     speech = "Sorry, I didn't get it. Can you please say it again!!"
-#     handler_input.response_builder.speak(speech).ask(speech)
-#     return handler_input.response_builder.response
+    speech = "Sorry, I didn't get it. Can you please say it again!!"
+    handler_input.response_builder.speak(speech).ask(speech)
+    return handler_input.response_builder.response
