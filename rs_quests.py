@@ -5,6 +5,7 @@ from ask_sdk_core.handler_input import HandlerInput
 from ask_sdk_model import Response
 from ask_sdk_model.ui import SimpleCard
 from ask_sdk_core.dispatch_components import AbstractExceptionHandler
+from boto3.dynamodb.types import TypeDeserializer
 import boto3
 import logging as log
 import json
@@ -28,53 +29,69 @@ def launch_request_handler(handler_input):
 def quest_intent_handler(handler_input):
     slots = handler_input.request_envelope.request.intent.slots
     slot = slots['name']
-    quest_name = slot.value
+    quest_name = slot.value.title()
     response = client.get_item(
         Key={
             'name': {
-                'S': quest_name,
+                'S': quest_name.title(),
             }
         },
         TableName='Runescape_Quests'
     )
-    print(type(response))
-    print(response)
-    print(response['Item'])
     quest = response['Item']
 
-    # if 'requiredItems' in quest or 'requiredSkills' in quest:
-    #     speech_text = 'For this quest you will need'
-    #     if 'requiredItems' in quest:
-    #         speech_text = speech_text + ' ' + quest['requiredItems']
-        
-    #     if 'requiredItems' in quest and 'requiredSkills' in quest:
-    #         speech_text = speech_text + ' and '
+    deserializer = TypeDeserializer()
 
-    #     if 'requiredSkills' in quest:
-    #         speech_text = speech_text + ' ' + quest['requiredSkills']
+    if 'requiredItems' in quest or 'requiredSkills' in quest:
+        speech_text = "For %s, you will need" % quest_name
+        if 'requiredItems' in quest:
+            speech_text = speech_text + ' ' + deserializer.deserialize(quest['requiredItems'])
         
-    #     speech_text = speech_text + '.'
-    # else:
-    #     speech_text = 'No requirements are needed for this quest. '
+        if 'requiredItems' in quest and 'requiredSkills' in quest:
+            speech_text = speech_text + ' and '
 
-    # speech_text = speech_text + 'Do you want to start or cancel?'
-    speech_text = "Hello Yan"
+        if 'requiredSkills' in quest:
+            speech_text = speech_text + ' ' + deserializer.deserialize(quest['requiredSkills'])
+        
+        speech_text = speech_text + '.'
+    else:
+        speech_text = "%s does not require any item or skill. " % quest_name
+
+    speech_text = speech_text + 'Do you want to start or cancel?'
 
     handler_input.response_builder.speak(speech_text).set_card(
-        SimpleCard(quest, speech_text)).set_should_end_session(False)
+        SimpleCard(quest_name, speech_text)).set_should_end_session(False)
 
-    print(type(handler_input.attributes_manager))
-    print(type(handler_input.attributes_manager.session_attributes))
-        
+    handler_input.attributes_manager.session_attributes['step'] = -1
+    handler_input.attributes_manager.session_attributes['steps'] = deserializer.deserialize(quest['steps'])
+    handler_input.attributes_manager.session_attributes['quest_name'] = quest_name
+    
     return handler_input.response_builder.response
 
 @sb.request_handler(can_handle_func=is_intent_name("NextIntent"))
 def next_intent_handler(handler_input):
-    return None
+    step = handler_input.attributes_manager.session_attributes['step']
+    steps = handler_input.attributes_manager.session_attributes['steps']
+    quest_name = handler_input.attributes_manager.session_attributes['quest_name']
+    speech_text = steps[step + 1]
+    handler_input.attributes_manager.session_attributes['step'] += 1
+
+    handler_input.response_builder.speak(speech_text).set_card(
+        SimpleCard("%s: Step %s" % (quest_name, step), speech_text)).set_should_end_session(False)
+        
+    return handler_input.response_builder.response
 
 @sb.request_handler(can_handle_func=is_intent_name("RepeatIntent"))
 def repeat_intent_handler(handler_input):
-    return None
+    step = handler_input.attributes_manager.session_attributes['step']
+    steps = handler_input.attributes_manager.session_attributes['steps']
+    quest_name = handler_input.attributes_manager.session_attributes['quest_name']
+    speech_text = steps[step]
+
+    handler_input.response_builder.speak(speech_text).set_card(
+        SimpleCard("%s: Step %s" % (quest_name, step), speech_text)).set_should_end_session(False)
+        
+    return handler_input.response_builder.response
 
 @sb.request_handler(can_handle_func=is_intent_name("AMAZON.HelpIntent"))
 def help_intent_handler(handler_input):
@@ -97,12 +114,12 @@ def cancel_and_stop_intent_handler(handler_input):
         SimpleCard("Hello World", speech_text)).set_should_end_session(True)
     return handler_input.response_builder.response
 
-@sb.exception_handler(can_handle_func=lambda i, e: True)
-def all_exception_handler(handler_input, exception):
-    # type: (HandlerInput, Exception) -> Response
-    # Log the exception in CloudWatch Logs
-    print(exception)
+# @sb.exception_handler(can_handle_func=lambda i, e: True)
+# def all_exception_handler(handler_input, exception):
+#     # type: (HandlerInput, Exception) -> Response
+#     # Log the exception in CloudWatch Logs
+#     print(exception)
 
-    speech = "Sorry, I didn't get it. Can you please say it again!!"
-    handler_input.response_builder.speak(speech).ask(speech)
-    return handler_input.response_builder.response
+#     speech = "Sorry, I didn't get it. Can you please say it again!!"
+#     handler_input.response_builder.speak(speech).ask(speech)
+#     return handler_input.response_builder.response
