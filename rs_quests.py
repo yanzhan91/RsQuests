@@ -38,6 +38,13 @@ def quest_intent_handler(handler_input):
         },
         TableName='Runescape_Quests'
     )
+
+    if 'Item' not in response:
+        speech_text = 'This quest is currently not supported. Please try again later.'
+        handler_input.response_builder.speak(speech_text).set_card(
+            SimpleCard('Unknown Quest', speech_text)).set_should_end_session(True)
+        return handler_input.response_builder.response
+
     quest = response['Item']
 
     deserializer = TypeDeserializer()
