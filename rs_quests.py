@@ -123,7 +123,7 @@ def cancel_and_stop_intent_handler(handler_input):
     speech_text = "Goodbye!"
 
     handler_input.response_builder.speak(speech_text).set_card(
-        SimpleCard("Hello World", speech_text)).set_should_end_session(True)
+        SimpleCard("Runescape Quests", speech_text)).set_should_end_session(True)
     return handler_input.response_builder.response
 
 @sb.exception_handler(can_handle_func=lambda i, e: True)
