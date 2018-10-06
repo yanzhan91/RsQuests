@@ -78,12 +78,11 @@ def next_intent_handler(handler_input):
         speech_text = "You have completed %s. Thank you for using Runescape Quests" % quest_name
         handler_input.response_builder.speak(speech_text).set_card(
         SimpleCard("%s: Step %s" % (quest_name, step), speech_text)).set_should_end_session(True)
-
-    speech_text = steps[step + 1]
-    handler_input.attributes_manager.session_attributes['step'] += 1
-
-    handler_input.response_builder.speak(speech_text).set_card(
-        SimpleCard("%s: Step %s" % (quest_name, step), speech_text)).set_should_end_session(False)
+    else:
+        speech_text = steps[step + 1]
+        handler_input.attributes_manager.session_attributes['step'] += 1
+        handler_input.response_builder.speak(speech_text).set_card(
+            SimpleCard("%s: Step %s" % (quest_name, step), speech_text)).set_should_end_session(False)
         
     return handler_input.response_builder.response
 
