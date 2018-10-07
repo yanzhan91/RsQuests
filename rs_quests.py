@@ -109,7 +109,7 @@ def help_intent_handler(handler_input):
     speech_text = get_help_text()
 
     handler_input.response_builder.speak(speech_text).ask(speech_text).set_card(
-        SimpleCard("Runescape Quests Help", speech_text)).should_end_session(False);
+        SimpleCard("Runescape Quests Help", speech_text)).set_should_end_session(False);
     return handler_input.response_builder.response
 
 @sb.request_handler(
