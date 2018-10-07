@@ -16,7 +16,11 @@ handler = sb.lambda_handler()
 
 @sb.request_handler(can_handle_func=is_request_type("LaunchRequest"))
 def launch_request_handler(handler_input):
-    return help_intent_handler(handler_input)
+    speech_text = get_help_text()
+
+    handler_input.response_builder.speak(speech_text).set_card(
+         SimpleCard("Runescape Quests", speech_text)).set_should_end_session(False)
+    return handler_input.response_builder.response
 
 @sb.request_handler(can_handle_func=is_intent_name("QuestIntent"))
 def quest_intent_handler(handler_input):
@@ -77,12 +81,14 @@ def next_intent_handler(handler_input):
     if len(steps) > step + 1:
         speech_text = steps[step + 1]
         handler_input.attributes_manager.session_attributes['step'] += 1
-        return handler_input.response_builder.speak(speech_text).set_card(
+        handler_input.response_builder.speak(speech_text).set_card(
             SimpleCard("%s: Step %s" % (quest_name, step), speech_text)).set_should_end_session(False)
     else:
         speech_text = "You have completed %s. Thank you for using Runescape Quests." % quest_name
-        return handler_input.response_builder.speak(speech_text).set_card(
+        handler_input.response_builder.speak(speech_text).set_card(
             SimpleCard(quest_name, speech_text)).set_should_end_session(True)
+
+    return handler_input.response_builder.response
         
 @sb.request_handler(can_handle_func=is_intent_name("RepeatIntent"))
 def repeat_intent_handler(handler_input):
@@ -99,10 +105,11 @@ def repeat_intent_handler(handler_input):
 @sb.request_handler(can_handle_func=is_intent_name("AMAZON.HelpIntent"))
 def help_intent_handler(handler_input):
     # type: (HandlerInput) -> Response
-    speech_text = "Which quest would you like to start? For example, you can say, start demon slayer. Then you will be given step by step instructions to complete the quest. After each step, you can say next or repeat."
+    
+    speech_text = get_help_text()
 
     handler_input.response_builder.speak(speech_text).ask(speech_text).set_card(
-        SimpleCard("Runescape Quests", speech_text)).should_end_session(False);
+        SimpleCard("Runescape Quests Help", speech_text)).should_end_session(False);
     return handler_input.response_builder.response
 
 @sb.request_handler(
@@ -117,12 +124,17 @@ def cancel_and_stop_intent_handler(handler_input):
         SimpleCard("Runescape Quests", speech_text)).set_should_end_session(True)
     return handler_input.response_builder.response
 
-@sb.exception_handler(can_handle_func=lambda i, e: True)
-def all_exception_handler(handler_input, exception):
-    # type: (HandlerInput, Exception) -> Response
-    # Log the exception in CloudWatch Logs
-    print(exception)
+def get_help_text():
+    return 'Which quest would you like to start? For example, you can say, start demon slayer. \
+    Then you will be given step by step instructions to complete the quest. \
+    After each step, you can say next or repeat.'
 
-    speech = "Sorry, I didn't get it. Can you please say it again!!"
-    handler_input.response_builder.speak(speech).ask(speech)
-    return handler_input.response_builder.response
+# @sb.exception_handler(can_handle_func=lambda i, e: True)
+# def all_exception_handler(handler_input, exception):
+#     # type: (HandlerInput, Exception) -> Response
+#     # Log the exception in CloudWatch Logs
+#     print(exception)
+
+#     speech = "Sorry, I didn't get it. Can you please say it again!!"
+#     handler_input.response_builder.speak(speech).ask(speech)
+#     return handler_input.response_builder.response
